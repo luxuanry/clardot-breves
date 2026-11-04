@@ -13,6 +13,13 @@ function readToken(): string {
   }
 }
 
+/** Error carrying the server's retry delay when the LLM quota is reached. */
+export class RateLimitError extends Error {
+  constructor(message: string, public retryAfter: number) {
+    super(message);
+  }
+}
+
 /** Shared fetch helper adding the optional admin token. */
 export async function adminFetch(url: string, body?: unknown) {
   const res = await fetch(url, {
@@ -21,9 +28,15 @@ export async function adminFetch(url: string, body?: unknown) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 429) throw new RateLimitError(data.error ?? "quota atteint", Number(data.retryAfter) || 30);
   if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return data;
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Max waits on the free-tier quota for one brief before giving up. */
+const MAX_RATE_LIMIT_RETRIES = 4;
 
 export function TokenField() {
   const [token, setToken] = useState("");
@@ -99,12 +112,27 @@ export function GenerateButtons({
     setBusy(true);
     const errors: string[] = [];
     // Sequential on purpose: one LLM call at a time, progress visible.
+    // On the free tier the tokens-per-minute quota is reached after about one brief,
+    // so we wait for the delay given by the provider and retry.
     for (const [i, id] of ids.entries()) {
-      setMsg(`Génération ${i + 1}/${ids.length}…`);
-      try {
-        await adminFetch("/api/briefs/generate", { publicationId: id });
-      } catch (e) {
-        errors.push(`${id} : ${(e as Error).message}`);
+      for (let attempt = 0; ; attempt++) {
+        setMsg(`Génération ${i + 1}/${ids.length}…`);
+        try {
+          await adminFetch("/api/briefs/generate", { publicationId: id });
+          break;
+        } catch (e) {
+          if (e instanceof RateLimitError && attempt < MAX_RATE_LIMIT_RETRIES) {
+            // The advertised delay is often too short for a large request: back off more each time.
+            const wait = Math.max(e.retryAfter + 2, 20 * (attempt + 1));
+            for (let s = wait; s > 0; s--) {
+              setMsg(`Génération ${i + 1}/${ids.length} : quota gratuit atteint, nouvel essai dans ${s} s…`);
+              await sleep(1000);
+            }
+            continue;
+          }
+          errors.push(`${id} : ${(e as Error).message}`);
+          break;
+        }
       }
     }
     setBusy(false);

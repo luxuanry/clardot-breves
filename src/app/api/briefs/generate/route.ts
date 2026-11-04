@@ -33,6 +33,13 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ brief, cached: false });
   } catch (e) {
+    if (e instanceof BriefError && e.retryAfter) {
+      // Rate limited by the LLM provider: tell the client how long to wait.
+      return NextResponse.json(
+        { error: e.message, retryAfter: e.retryAfter },
+        { status: 429, headers: { "retry-after": String(e.retryAfter) } },
+      );
+    }
     const status = e instanceof BriefError ? 422 : 500;
     return NextResponse.json({ error: (e as Error).message }, { status });
   }

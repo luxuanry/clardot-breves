@@ -42,7 +42,8 @@ const CURRENCY = /^(€|eur(os?)?\b|\$|usd\b|dollars?\b|£|gbp\b|livres? sterlin
 
 /** A number: digits with optional thousand groups and decimals, e.g. 1 234 567,89 or 750.000.000. */
 const NUMBER_RE = new RegExp(
-  `(?<![\\w.,])([+\\-−]?)(\\d{1,3}(?:(?:${SPACE}|[.,])\\d{3})+(?:[.,]\\d+)?|\\d+(?:[.,]\\d+)?)`,
+  // Not preceded by a letter, digit, separator or "/" (so "27" in "2026/27" is skipped).
+  `(?<![\\w.,/])([+\\-−]?)(\\d{1,3}(?:(?:${SPACE}|[.,])\\d{3})+(?:[.,]\\d+)?|\\d+(?:[.,]\\d+)?)`,
   "g",
 );
 
@@ -94,6 +95,12 @@ export function extractFigures(text: string): ParsedFigure[] {
     let cursor = index + m[0].length;
     const spacesAt = (pos: number) => text.slice(pos).match(/^[\s  ]*/)?.[0].length ?? 0;
 
+    // Accounting notation for negatives: "(1 248)" or "(4) %". Skip the closing
+    // parenthesis so that the scale and unit written after it are still read.
+    const accounting = text[index - 1] === "(" && text[cursor] === ")";
+    const start = accounting ? index - 1 : index;
+    if (accounting) cursor += 1;
+
     let scale = 1;
     let end = cursor;
     let ws = spacesAt(cursor);
@@ -125,7 +132,7 @@ export function extractFigures(text: string): ParsedFigure[] {
 
     const { values, decimals } = parseNumber(token);
     out.push({
-      raw: text.slice(index, end).replace(/[\s  ]+/g, " ").trim(),
+      raw: text.slice(start, end).replace(/[\s  ]+/g, " ").trim(),
       values: values.map((v) => v * scale),
       decimals,
       scale,
@@ -137,10 +144,19 @@ export function extractFigures(text: string): ParsedFigure[] {
 }
 
 /** Figures not worth checking: bare years and small counters ("3e trimestre", "9 mois"). */
-export function isTrivial(f: ParsedFigure): boolean {
+const MONTH_AFTER =
+  /^[\s\u00a0\u202f]*(er\b)?[\s\u00a0\u202f]*(janvier|f[ée]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[ée]cembre|january|february|march|april|may|june|july|august|september|october|november|december)/i;
+
+/**
+ * Figures not worth checking: bare years, small counters ("3e trimestre", "9 mois")
+ * and days of the month ("30 septembre"), which are dates rather than figures.
+ */
+export function isTrivial(f: ParsedFigure, text = ""): boolean {
   if (f.unit !== "plain" || f.scale !== 1 || f.decimals > 0) return false;
   const v = f.values[0];
-  return (v >= 1900 && v <= 2100) || v < 10;
+  if ((v >= 1900 && v <= 2100) || v < 10) return true;
+  const after = text.slice(f.index + f.raw.length);
+  return v <= 31 && MONTH_AFTER.test(after);
 }
 
 function excerpt(text: string, index: number, radius = 70): string {
@@ -194,7 +210,7 @@ export function checkFigure(fig: ParsedFigure, source: ParsedFigure[], sourceTex
 
 /** Checks every non-trivial figure of the brief against the source text. */
 export function verifyBrief(briefText: string, sourceText: string): FigureCheck[] {
-  const briefFigures = extractFigures(briefText).filter((f) => !isTrivial(f));
+  const briefFigures = extractFigures(briefText).filter((f) => !isTrivial(f, briefText));
   // Same figure written twice in the brief is checked once.
   const unique = [...new Map(briefFigures.map((f) => [f.raw, f])).values()];
 

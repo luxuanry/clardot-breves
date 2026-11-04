@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { MainNav } from "./nav";
 
 export const metadata: Metadata = {
   title: "Brèves AMF",
@@ -23,11 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="top">
           <div className="wrap">
             <Link href="/" className="brand">brèves<span className="dot">.</span>amf</Link>
-            <nav>
-              <Link href="/">Publications</Link>
-              <Link href="/selection">Sélection</Link>
-              <Link href="/briefs">Brèves</Link>
-            </nav>
+            <MainNav />
           </div>
         </header>
         <main className="wrap">{children}</main>

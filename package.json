@@ -5,6 +5,7 @@
   "description": "Fetch AMF regulated disclosures from info-financiere.gouv.fr, select newsworthy ones and draft verified news briefs with an LLM.",
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "bash scripts/dev-clean.sh",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",

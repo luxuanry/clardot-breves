@@ -59,6 +59,32 @@ describe("verifyBrief", () => {
     expect(verifyBrief("Au 3e trimestre 2026, sur 9 mois.", SOURCE)).toEqual([]);
   });
 
+  it("treats a day of the month as a date, not a figure", () => {
+    expect(verifyBrief("Au 30 septembre 2026, puis le 1er octobre.", SOURCE)).toEqual([]);
+    // A real count is still checked (42 does not appear in the source).
+    expect(verifyBrief("Le groupe compte 42 sites.", SOURCE)[0].status).toBe("not_found");
+  });
+
+  it("reads accounting notation for negatives (real Alstom release)", () => {
+    const src =
+      "Marge d'exploitation ajustée d'environ (4) %. Cash-flow libre de (1 248) millions d'euros. " +
+      "Texte du communiqué complété pour dépasser le seuil de lisibilité du document source. ".repeat(3);
+    const checks = verifyBrief("Une marge négative d'environ 4 % et un cash-flow libre de -1 248 millions d'euros.", src);
+    expect(checks.map((c) => [c.figure, c.status])).toEqual([
+      ["4 %", "verified"],
+      ["-1 248 millions d'euros", "verified"],
+    ]);
+    // The parenthesised source figure keeps its unit.
+    expect(extractFigures(src).map((f) => [f.raw, f.unit])).toEqual([
+      ["(4) %", "percent"],
+      ["(1 248) millions d'euros", "currency"],
+    ]);
+  });
+
+  it("does not treat the second half of a fiscal year as a figure", () => {
+    expect(verifyBrief("Premier semestre de l'exercice 2026/27.", SOURCE)).toEqual([]);
+  });
+
   it("marks everything unverifiable when the PDF has no text", () => {
     const checks = verifyBrief("Un CA de 285 M€.", "   ");
     expect(checks[0].status).toBe("unverifiable");

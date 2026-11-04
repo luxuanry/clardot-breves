@@ -1,7 +1,5 @@
 import { extractText, getDocumentProxy } from "unpdf";
 
-/** Upper bound on the text sent to the LLM (press releases rarely need more). */
-export const MAX_SOURCE_CHARS = 15_000;
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
 export interface SourceDocument {

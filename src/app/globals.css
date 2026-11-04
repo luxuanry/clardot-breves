@@ -68,28 +68,37 @@ a:hover { color: var(--brand); text-decoration-color: var(--brand); }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 
 /* Dark top bar, as on clardot.com */
-header.top { background: var(--nav); }
-header.top .wrap { display: flex; align-items: center; gap: 28px; height: 56px; }
+/* Top bar: 64px high, 16px links, 44px tap targets, active page underlined in brand red. */
+header.top { background: var(--nav); position: sticky; top: 0; z-index: 10; }
+header.top .wrap { display: flex; align-items: center; gap: 32px; height: 64px; }
 header.top .brand {
   font-weight: 700;
-  font-size: 19px;
+  font-size: 22px;
   letter-spacing: -0.02em;
   color: #fff;
   text-decoration: none;
+  white-space: nowrap;
 }
 header.top .brand .dot { color: var(--brand); }
-header.top nav { display: flex; gap: 4px; }
+header.top nav { display: flex; gap: 4px; height: 100%; }
 header.top nav a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
   color: var(--nav-text);
   font-weight: 500;
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-size: 16px;
   text-decoration: none;
+  border-bottom: 3px solid transparent;
+  border-top: 3px solid transparent;
+  white-space: nowrap;
 }
-header.top nav a:hover { background: var(--nav-2); color: #fff; }
+header.top nav a:hover { color: #fff; border-bottom-color: var(--nav-2); }
+header.top nav a[aria-current="page"] { color: #fff; font-weight: 600; border-bottom-color: var(--brand); }
 
-main { padding: 32px 0 60px; }
+/* "main.wrap" so it beats the horizontal padding set by .wrap */
+main.wrap { padding-top: 32px; padding-bottom: 60px; }
 
 .kicker {
   display: flex;
@@ -216,12 +225,95 @@ td.type { color: var(--ink-2); font-size: 13px; min-width: 160px; }
 .figures td, .figures th { padding: 6px 6px; }
 .figures .evidence { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
+/* ---------- Briefs: single-column reading layout (Clardot reading width) ---------- */
+.reading { max-width: 720px; margin: 0 auto; }
+
+.brief {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--brand);
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+}
+.brief-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.brief-meta .company { font-weight: 600; color: var(--ink-2); }
+.brief h2 {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 12px 0 14px;
+  letter-spacing: -0.01em;
+  overflow-wrap: break-word;
+}
+.brief-body {
+  font-family: var(--font-edito);
+  font-size: 18px;
+  line-height: 1.7;
+  margin: 0 0 20px;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.facts {
+  background: var(--bg-2);
+  border-left: 3px solid var(--ink);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin: 0 0 20px;
+}
+.facts h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.facts ul { margin: 0; padding-left: 18px; }
+.facts li { margin: 3px 0; }
+
+.checks { border-top: 1px solid var(--line); padding-top: 14px; margin-bottom: 8px; font-size: 14px; }
+.checks-summary { margin: 0 0 10px; color: var(--ink-2); }
+.bad-text { color: var(--bad); font-weight: 600; }
+.checks details { margin-top: 6px; }
+.checks summary { cursor: pointer; color: var(--ink-2); font-weight: 500; padding: 4px 0; }
+.checks summary:hover { color: var(--brand); }
+
+.fig-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.fig { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--bg); }
+.fig-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
+.fig-note { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.fig-evidence {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.brief-foot { font-size: 13px; color: var(--muted); margin: 14px 0 0; }
+
 .empty { text-align: center; padding: 40px; color: var(--muted); }
 footer { color: var(--muted); font-size: 12px; padding: 20px 16px 40px; border-top: 1px solid var(--line); }
 
 @media (max-width: 640px) {
-  header.top .wrap { gap: 12px; }
-  header.top nav a { padding: 6px 6px; }
+  /* Two rows on phones: brand, then the three links sharing the full width. */
+  header.top { position: static; }
+  header.top .wrap { flex-direction: column; align-items: stretch; gap: 0; height: auto; padding: 0; }
+  header.top .brand { font-size: 20px; padding: 12px 16px 4px; }
+  header.top nav { gap: 0; height: auto; }
+  header.top nav a { flex: 1; justify-content: center; padding: 0 4px; font-size: 16px; min-height: 48px; }
   h1 { font-size: 28px; }
   .grid { grid-template-columns: 1fr; }
+  .brief { padding: 20px 18px; border-radius: 8px; }
+  .brief h2 { font-size: 22px; }
+  .brief-body { font-size: 17px; line-height: 1.65; }
 }
