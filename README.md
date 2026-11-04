@@ -312,8 +312,3 @@ partir de mots-clés plausibles doit être relue face à des données réelles.
 - **Qualité** : jeu d'évaluation de brèves annotées (les cas Alstom, ONWARD, Publicis et FORVIA en
   seraient le point de départ) pour mesurer l'effet de chaque changement de prompt ou de modèle, au
   lieu de juger sur un seul communiqué.
-
-## Temps passé
-
-`<À compléter : temps réel, en distinguant si possible compréhension des données, développement assisté
-par IA, tests sur données réelles et rédaction du README.>`
